@@ -1,0 +1,369 @@
+.card {
+  position: relative;
+  border: 1px solid rgba(128, 128, 128, 0.14);
+  border-radius: 14px;
+  background: rgba(128, 128, 128, 0.03);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.card:hover {
+  border-color: rgba(128, 128, 128, 0.28);
+}
+
+.cardExpanded {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: linear-gradient(
+    165deg,
+    rgba(34, 197, 94, 0.07) 0%,
+    rgba(128, 128, 128, 0.02) 42%,
+    transparent 100%
+  );
+  box-shadow:
+    0 4px 24px rgba(34, 197, 94, 0.08),
+    inset 3px 0 0 rgba(34, 197, 94, 0.55);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 52px 10px 14px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.header:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+
+.thumb {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(128, 128, 128, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.65;
+  border: 1px solid rgba(128, 128, 128, 0.12);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 1;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub {
+  font-size: 11px;
+  opacity: 0.55;
+  margin: 3px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qty {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 11px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  border-radius: 99px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.35;
+  transition: transform 0.25s ease, opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.card:hover .chevron,
+.cardExpanded .chevron {
+  opacity: 0.7;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  opacity: 0.85;
+}
+
+.deleteBtn {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  opacity: 0.3;
+  transition: all 0.15s;
+  display: flex;
+  color: inherit;
+  z-index: 1;
+}
+
+.deleteBtn:hover {
+  opacity: 1;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.details {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.detailsOpen {
+  grid-template-rows: 1fr;
+}
+
+.detailsInner {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0 14px;
+  border-top: 1px solid transparent;
+  transition: padding 0.3s ease, border-color 0.3s ease;
+}
+
+.detailsOpen .detailsInner {
+  padding: 0 14px 16px;
+  border-top-color: rgba(128, 128, 128, 0.12);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 14px;
+  padding-top: 14px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 420px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.media {
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid rgba(128, 128, 128, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  background: rgba(128, 128, 128, 0.06);
+}
+
+.media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.35;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.storedLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #16a34a;
+  opacity: 0.9;
+}
+
+.detailName {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.desc {
+  font-size: 13px;
+  line-height: 1.55;
+  opacity: 0.72;
+  margin: 4px 0 0;
+}
+
+.descMuted {
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.45;
+  font-style: italic;
+  margin: 4px 0 0;
+}
+
+.date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  opacity: 0.45;
+  margin-top: 8px;
+}
+
+.section {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.05);
+  border: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.45;
+  margin: 0 0 10px;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.metaItem {
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: rgba(128, 128, 128, 0.06);
+  transition: background 0.15s;
+}
+
+.metaItem:hover {
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.metaItem label {
+  font-size: 10px;
+  opacity: 0.5;
+  display: block;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metaItem span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.metaWide {
+  grid-column: 1 / -1;
+}
+
+.colorMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colorSwatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(128, 128, 128, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.traitsBlock {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(128, 128, 128, 0.15);
+}
+
+.traitsHeading {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.45;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.traitList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trait {
+  font-size: 11px;
+  padding: 5px 11px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 99px;
+  color: #15803d;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.trait:hover {
+  transform: translateY(-1px);
+  background: rgba(34, 197, 94, 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  .qty {
+    color: #4ade80;
+  }
+
+  .trait {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.12);
+  }
+
+  .storedLabel {
+    color: #4ade80;
+  }
+}
