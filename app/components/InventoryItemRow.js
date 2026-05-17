@@ -1,4 +1,7 @@
+import dynamic from "next/dynamic";
 import styles from "./InventoryItemRow.module.css";
+
+const ObjectReconstruct = dynamic(() => import("./ObjectReconstruct"), { ssr: false });
 
 export default function InventoryItemRow({ item, expanded, onToggle, onDelete }) {
   const traits = parseTraits(item.traits);
@@ -25,7 +28,8 @@ export default function InventoryItemRow({ item, expanded, onToggle, onDelete })
           <p className={styles.sub}>
             {item.type}
             {item.color ? ` · ${item.color}` : ""}
-            {traits[0] ? ` · ${traits[0]}` : ""}
+            {item.location_label ? ` · ${item.location_label}` : ""}
+            {!item.location_label && traits[0] ? ` · ${traits[0]}` : ""}
           </p>
         </div>
         <span className={styles.qty}>×{item.quantity}</span>
@@ -104,7 +108,16 @@ export default function InventoryItemRow({ item, expanded, onToggle, onDelete })
                   {item.quantity} unit{item.quantity !== 1 ? "s" : ""}
                 </span>
               </div>
+              {item.location_label && (
+                <div className={`${styles.metaItem} ${styles.metaWide}`}>
+                  <label>Location</label>
+                  <span>{item.location_label}</span>
+                </div>
+              )}
             </div>
+            {expanded && (
+              <ObjectReconstruct itemId={item.id} />
+            )}
             {traits.length > 0 && (
               <div className={styles.traitsBlock}>
                 <label className={styles.traitsHeading}>Identifying traits</label>

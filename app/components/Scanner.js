@@ -2,7 +2,7 @@
 import { useRef, useState, useEffect } from "react";
 import styles from "./Scanner.module.css";
 
-export default function Scanner({ onResult, onScanningChange, onReset, inventory }) {
+export default function Scanner({ onResult, onScanningChange, onReset, inventory, zonesData }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -61,6 +61,27 @@ export default function Scanner({ onResult, onScanningChange, onReset, inventory
 
     const base64 = dataUrl.split(",")[1];
 
+    let location_zone_id = "";
+    let location_label = "";
+    let detected_marker_ids = [];
+
+    try {
+      const { detectArucoMarkers } = await import("../lib/arucoDetect");
+      const { getZoneByMarkerId, pickPrimaryMarker } = await import("../lib/zones");
+      const detections = await detectArucoMarkers(dataUrl);
+      detected_marker_ids = detections.map((d) => d.markerId);
+      const primary = pickPrimaryMarker(detections);
+      if (primary && zonesData) {
+        const zone = getZoneByMarkerId(zonesData, primary.markerId);
+        if (zone) {
+          location_zone_id = zone.id;
+          location_label = zone.label;
+        }
+      }
+    } catch {
+      /* ArUco optional — manual zone picker still works */
+    }
+
     try {
       const res = await fetch("/api/scan", {
         method: "POST",
@@ -75,7 +96,14 @@ export default function Scanner({ onResult, onScanningChange, onReset, inventory
 
       // Generate small thumbnail
       const thumb = await generateThumbnail(dataUrl);
-      onResult({ ...result, thumbnail: thumb, rawDataUrl: dataUrl });
+      onResult({
+        ...result,
+        thumbnail: thumb,
+        rawDataUrl: dataUrl,
+        location_zone_id,
+        location_label,
+        detected_marker_ids,
+      });
     } catch (err) {
       setError("Scan failed: " + err.message);
     } finally {

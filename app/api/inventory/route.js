@@ -3,12 +3,27 @@ import fs from "fs";
 import path from "path";
 
 const CSV_PATH = path.join(process.cwd(), "data", "inventory.csv");
-const CSV_HEADER = "id,name,type,color,traits,description,quantity,added_at,thumbnail\n";
+const CSV_HEADER =
+  "id,name,type,color,traits,description,quantity,added_at,thumbnail,location_zone_id,location_label\n";
 
 function ensureCSV() {
   const dir = path.dirname(CSV_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  if (!fs.existsSync(CSV_PATH)) fs.writeFileSync(CSV_PATH, CSV_HEADER, "utf8");
+  if (!fs.existsSync(CSV_PATH)) {
+    fs.writeFileSync(CSV_PATH, CSV_HEADER, "utf8");
+    return;
+  }
+  const raw = fs.readFileSync(CSV_PATH, "utf8");
+  const firstLine = raw.split("\n")[0] || "";
+  if (!firstLine.includes("location_zone_id")) {
+    const lines = raw.trim().split("\n");
+    const header = CSV_HEADER.trim();
+    const body = lines.slice(1).map((line) => {
+      if (!line.trim()) return line;
+      return `${line},,`;
+    });
+    fs.writeFileSync(CSV_PATH, [header, ...body].join("\n") + "\n", "utf8");
+  }
 }
 
 function parseCSV(raw) {
@@ -42,6 +57,8 @@ function parseCSV(raw) {
       quantity: parseInt(cols[6]) || 1,
       added_at: cols[7] || "",
       thumbnail: cols[8] || "",
+      location_zone_id: cols[9] || "",
+      location_label: cols[10] || "",
     };
   }).filter((r) => r.id);
 }
@@ -65,6 +82,8 @@ function rowToCSV(item) {
     item.quantity,
     item.added_at,
     item.thumbnail || "",
+    item.location_zone_id || "",
+    item.location_label || "",
   ]
     .map(escapeCSVField)
     .join(",");
@@ -105,6 +124,8 @@ export async function POST(request) {
       quantity: parseInt(newItem.quantity) || 1,
       added_at: newItem.added_at || new Date().toISOString(),
       thumbnail: newItem.thumbnail || "",
+      location_zone_id: newItem.location_zone_id || "",
+      location_label: newItem.location_label || "",
     };
 
     items.push(item);
@@ -119,7 +140,8 @@ export async function POST(request) {
 export async function PATCH(request) {
   try {
     ensureCSV();
-    const { id, quantity } = await request.json();
+    const body = await request.json();
+    const { id, quantity, location_zone_id, location_label } = body;
     const raw = fs.readFileSync(CSV_PATH, "utf8");
     const items = parseCSV(raw);
 
@@ -128,7 +150,15 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
-    items[idx].quantity = parseInt(quantity) || items[idx].quantity;
+    if (quantity != null) {
+      items[idx].quantity = parseInt(quantity) || items[idx].quantity;
+    }
+    if (location_zone_id !== undefined) {
+      items[idx].location_zone_id = location_zone_id || "";
+    }
+    if (location_label !== undefined) {
+      items[idx].location_label = location_label || "";
+    }
     writeCSV(items);
     return NextResponse.json(items[idx]);
   } catch (err) {

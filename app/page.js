@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import Scanner from "./components/Scanner";
 import InventoryItemRow from "./components/InventoryItemRow";
+import MapView from "./components/MapView";
+import { getZoneById } from "./lib/zones";
 import styles from "./page.module.css";
 
 const UI_SCALE_MIN = 0.9;
@@ -16,8 +18,11 @@ function clampScale(value) {
 
 export default function Home() {
   const [inventory, setInventory] = useState([]);
+  const [zonesData, setZonesData] = useState({ version: 1, floorPlan: "", zones: [] });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("scan");
+  const [mapMode, setMapMode] = useState("view");
+  const [scanLocationZoneId, setScanLocationZoneId] = useState("");
   const [scanResult, setScanResult] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -48,7 +53,20 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => { loadInventory(); }, [loadInventory]);
+  const loadZones = useCallback(async () => {
+    try {
+      const res = await fetch("/api/zones");
+      const data = await res.json();
+      if (data && !data.error) setZonesData(data);
+    } catch (err) {
+      console.error("Failed to load zones:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadInventory();
+    loadZones();
+  }, [loadInventory, loadZones]);
 
   useEffect(() => {
     const saved = localStorage.getItem(UI_SCALE_STORAGE_KEY);
@@ -78,6 +96,7 @@ export default function Home() {
 
   function handleScanResult(result) {
     setScanResult(result);
+    setScanLocationZoneId(result.location_zone_id || "");
     const matchedItem =
       result.match_id != null
         ? inventory.find((it) => String(it.id) === String(result.match_id))
@@ -87,7 +106,26 @@ export default function Home() {
 
   function handleScanReset() {
     setScanResult(null);
+    setScanLocationZoneId("");
     setScanning(false);
+  }
+
+  function handleLocationZoneChange(zoneId) {
+    setScanLocationZoneId(zoneId);
+    if (!zoneId) {
+      setScanResult((r) => (r ? { ...r, location_zone_id: "", location_label: "" } : r));
+      return;
+    }
+    const zone = getZoneById(zonesData, zoneId);
+    setScanResult((r) =>
+      r
+        ? {
+            ...r,
+            location_zone_id: zoneId,
+            location_label: zone?.label || "",
+          }
+        : r
+    );
   }
 
   function adjustQuantity(delta) {
@@ -100,12 +138,21 @@ export default function Home() {
     const isMatch =
       scanResult.match_id != null &&
       inventory.some((it) => String(it.id) === String(scanResult.match_id));
+    const zone = getZoneById(zonesData, scanLocationZoneId);
+    const location_zone_id = scanLocationZoneId || scanResult.location_zone_id || "";
+    const location_label = zone?.label || scanResult.location_label || "";
+
     try {
       if (isMatch) {
         await fetch("/api/inventory", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: scanResult.match_id, quantity }),
+          body: JSON.stringify({
+            id: scanResult.match_id,
+            quantity,
+            location_zone_id,
+            location_label,
+          }),
         });
         showStatus(`Updated "${scanResult.name}" — quantity set to ${quantity}`);
       } else {
@@ -122,6 +169,8 @@ export default function Home() {
             quantity,
             added_at: new Date().toISOString(),
             thumbnail: scanResult.thumbnail || "",
+            location_zone_id,
+            location_label,
           }),
         });
         showStatus(`"${scanResult.name}" added to inventory`);
@@ -152,9 +201,21 @@ export default function Home() {
 
   function exportCSV() {
     if (inventory.length === 0) { showStatus("Nothing to export yet"); return; }
-    const header = "id,name,type,color,traits,description,quantity,added_at";
+    const header =
+      "id,name,type,color,traits,description,quantity,added_at,location_zone_id,location_label";
     const rows = inventory.map((it) =>
-      [it.id, it.name, it.type, it.color, it.traits, it.description, it.quantity, it.added_at]
+      [
+        it.id,
+        it.name,
+        it.type,
+        it.color,
+        it.traits,
+        it.description,
+        it.quantity,
+        it.added_at,
+        it.location_zone_id || "",
+        it.location_label || "",
+      ]
         .map((v) => { const s = String(v ?? ""); return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s; })
         .join(",")
     );
@@ -176,7 +237,8 @@ export default function Home() {
         it.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
         it.color.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (it.traits || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (it.description || "").toLowerCase().includes(searchQuery.toLowerCase())
+        (it.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (it.location_label || "").toLowerCase().includes(searchQuery.toLowerCase())
       )
     : inventory;
 
@@ -235,6 +297,9 @@ export default function Home() {
           <BoxIcon /> Inventory
           {inventory.length > 0 && <span className={styles.badge}>{inventory.length}</span>}
         </button>
+        <button className={`${styles.tab} ${activeTab === "map" ? styles.tabActive : ""}`} onClick={() => { setActiveTab("map"); setMapMode("view"); }}>
+          <MapIcon /> Map
+        </button>
       </div>
 
       {activeTab === "scan" && (
@@ -245,6 +310,7 @@ export default function Home() {
               onScanningChange={setScanning}
               onReset={handleScanReset}
               inventory={inventory}
+              zonesData={zonesData}
             />
           </div>
 
@@ -295,6 +361,32 @@ export default function Home() {
                     Matches &ldquo;<strong>{matchedItem.name}</strong>&rdquo; in inventory (
                     {matchedItem.quantity} in stock)
                     {scanResult.match_reason && ` — ${scanResult.match_reason}`}
+                  </div>
+                )}
+
+                {(scanResult.detected_marker_ids?.length > 0 ||
+                  scanLocationZoneId ||
+                  zonesData.zones?.length > 0) && (
+                  <div className={styles.locationRow}>
+                    <label className={styles.qtyLabel}>Location</label>
+                    {scanResult.detected_marker_ids?.length > 0 && (
+                      <span className={styles.markerHint}>
+                        Markers detected: {scanResult.detected_marker_ids.join(", ")}
+                      </span>
+                    )}
+                    <select
+                      className={styles.locationSelect}
+                      value={scanLocationZoneId}
+                      onChange={(e) => handleLocationZoneChange(e.target.value)}
+                    >
+                      <option value="">— No location —</option>
+                      {zonesData.zones?.map((z) => (
+                        <option key={z.id} value={z.id}>
+                          {z.label}
+                          {z.markerId != null ? ` (marker #${z.markerId})` : ""}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
                 <div className={styles.traitList}>
@@ -372,6 +464,25 @@ export default function Home() {
         </div>
       )}
 
+      {activeTab === "map" && (
+        <MapView
+          zonesData={zonesData}
+          inventory={inventory}
+          mapMode={mapMode}
+          onMapModeChange={setMapMode}
+          onZonesSaved={(data) => {
+            setZonesData(data);
+            setMapMode("view");
+          }}
+          onStatus={(msg, isError) => showStatus(msg, isError ? 5000 : 3000)}
+          onItemClick={(item) => {
+            setActiveTab("inventory");
+            setSearchQuery(item.name);
+            setExpandedIds(new Set([item.id]));
+          }}
+        />
+      )}
+
       {activeTab === "inventory" && (
         <div className={styles.inventoryView}>
           <div className={styles.statsRow}>
@@ -417,6 +528,15 @@ function CameraIcon({ size = 18 }) {
 }
 function BoxIcon({ size = 18 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>;
+}
+function MapIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="22" />
+    </svg>
+  );
 }
 function DownloadIcon({ size = 16 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;

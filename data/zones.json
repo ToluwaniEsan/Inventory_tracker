@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "floorPlan": "floorplan.webp",
+  "zones": [
+    {
+      "id": "zone-new-zone-mp95n6lk",
+      "markerId": 1,
+      "label": "Bedroom",
+      "x": 0.735,
+      "y": 0.362
+    }
+  ]
+}

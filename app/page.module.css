@@ -437,6 +437,28 @@
   justify-content: center;
 }
 
+.locationRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.markerHint {
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.locationSelect {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+}
+
 @media (max-width: 720px) {
   .scanView {
     grid-template-columns: 1fr;
